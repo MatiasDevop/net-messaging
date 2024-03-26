@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="WolverineFx" Version="2.1.2" />
+    <PackageReference Include="WolverineFx.RabbitMQ" Version="2.1.2" />
   </ItemGroup>
 
   <ItemGroup>

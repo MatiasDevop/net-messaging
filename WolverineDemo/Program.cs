@@ -20,3 +20,5 @@ app.Run();
 
 
 public record CreateCustomer(Guid Id, string FullName);
+
+public record CustomerCreated(Guid Id, string FullName);

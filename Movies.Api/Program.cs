@@ -11,7 +11,7 @@ var config = builder.Configuration;
 
 builder.Host.UseWolverine(x =>
 {
-    x.PublishMessage<MovieCreated>().ToRabbitExchange("movies-exc", exchange =>
+    x.PublishAllMessages().ToRabbitExchange("movies-exc", exchange =>
     {
         exchange.ExchangeType = ExchangeType.Direct;
         exchange.BindQueue("movies-queue", "exchange2movies");
@@ -21,7 +21,14 @@ builder.Host.UseWolverine(x =>
     {
         c.HostName = "localhost";
     }).AutoProvision();
-});
+    // For use in cloud porposesses
+    //x.PublishAllMessages().ToSqsQueue("movies-queue");
+
+    //x.useAmazonSqsTransport().AutoProvision();
+
+    //you can use this too x.UseFluentValidatotion();
+});// if you want to publish to the cloud just remove WolverineFX and install wolverineFx.AmazonSqs
+
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
