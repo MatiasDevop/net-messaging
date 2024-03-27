@@ -5,6 +5,7 @@ using FluentValidation;
 using System.Collections.Concurrent;
 using Wolverine;
 using FluentValidation.Results;
+using MassTransit;
 
 namespace Movies.Api.Movies
 {
@@ -14,12 +15,14 @@ namespace Movies.Api.Movies
         private readonly ConcurrentDictionary<Guid, Movie> _movies = new();
         private readonly ConcurrentDictionary<string, Guid> _slugToIdJoin = new();
 
-        private readonly IMessageBus _messageBus;
+        //private readonly IMessageBus _messageBus;// WOLVERINE
+        private readonly IBus _bus;
 
-        public MovieService(IValidator<Movie> movieValidator, IMessageBus messageBus)
+        public MovieService(IValidator<Movie> movieValidator, IBus bus)
         {
             _movieValidator = movieValidator;
-            _messageBus = messageBus;
+            //_messageBus = messageBus;
+            _bus = bus;
         }
 
         public async Task<Result<Movie, ValidationFailed>> CreateAsync(Movie movie)
@@ -40,9 +43,11 @@ namespace Movies.Api.Movies
             _movies[movie.Id] = movie;
 
             var message = movie.MapToCreated();
+
+            await _bus.Publish(message);
             //await _messageBus.SendAsync(message); this is not for production
             //be careful here this can be send to the database but not publishing
-            await _messageBus.PublishAsync(message);
+            //await _messageBus.PublishAsync(message);// this is for WOLVERINE
 
             return movie;
         }
@@ -90,7 +95,7 @@ namespace Movies.Api.Movies
             _movies[movie.Id] = movie;
 
             var movieMessage = movie.MapToUpdated();
-            //await _bus.Publish(movieMessage);
+            await _bus.Publish(movieMessage);// this for MassTransit
 
             return movie;
         }
@@ -106,7 +111,7 @@ namespace Movies.Api.Movies
             _slugToIdJoin.Remove(movie.Slug, out _);
 
             var movieMessage = movie.MapToDeleted();
-            //await _bus.Publish(movieMessage);
+            await _bus.Publish(movieMessage); // this is Using MassTransit
 
             return true;
         }

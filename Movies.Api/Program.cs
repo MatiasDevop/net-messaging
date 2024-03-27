@@ -1,4 +1,5 @@
 using FluentValidation;
+using MassTransit;
 using MessagingContracts;
 using Movies.Api.Contracts;
 using Movies.Api.Contracts.Requests;
@@ -10,8 +11,31 @@ using Wolverine.RabbitMQ;
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
 
-builder.Host.UseWolverine(x =>
+/* Using MassTransit */
+builder.Services.AddMassTransit(x =>
 {
+    x.SetKebabCaseEndpointNameFormatter();
+    //x.UsingAmazonSqs((context, cfg) =>
+    //{
+    //    cfg.Host("eu-west-2", _ => {});
+    //    cfg.ConfigureEndpoints(context);
+    //});
+    //To use RabbitMq just remove AmazonSQS then install Masstransient.RabbitMq
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host("localhost", "/", h =>
+        {
+            h.Username("guest");
+            h.Password("guest");
+        });
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
+
+/*using WOLVERINE */
+//builder.Host.UseWolverine(x =>
+//{
     //x.PublishAllMessages().ToRabbitExchange("movies-exc", exchange =>
     //{
     //    exchange.ExchangeType = ExchangeType.Direct;
@@ -29,7 +53,7 @@ builder.Host.UseWolverine(x =>
     //x.useAmazonSqsTransport().AutoProvision();
 
     //you can use this too x.UseFluentValidatotion();
-});// if you want to publish to the cloud just remove WolverineFX and install wolverineFx.AmazonSqs
+//});// if you want to publish to the cloud just remove WolverineFX and install wolverineFx.AmazonSqs
 
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
