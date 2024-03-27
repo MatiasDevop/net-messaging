@@ -2,6 +2,7 @@ using FluentValidation;
 using MessagingContracts;
 using Movies.Api.Contracts;
 using Movies.Api.Contracts.Requests;
+using Movies.Api.Metrics;
 using Movies.Api.Movies;
 using Wolverine;
 using Wolverine.RabbitMQ;
@@ -11,16 +12,17 @@ var config = builder.Configuration;
 
 builder.Host.UseWolverine(x =>
 {
-    x.PublishAllMessages().ToRabbitExchange("movies-exc", exchange =>
-    {
-        exchange.ExchangeType = ExchangeType.Direct;
-        exchange.BindQueue("movies-queue", "exchange2movies");
-    });
+    //x.PublishAllMessages().ToRabbitExchange("movies-exc", exchange =>
+    //{
+    //    exchange.ExchangeType = ExchangeType.Direct;
+    //    exchange.BindQueue("movies-queue", "exchange2movies");
+    //});
 
-    x.UseRabbitMq(c =>
-    {
-        c.HostName = "localhost";
-    }).AutoProvision();
+    //x.UseRabbitMq(c =>
+    //{
+    //    c.HostName = "localhost";
+    //}).AutoProvision();
+
     // For use in cloud porposesses
     //x.PublishAllMessages().ToSqsQueue("movies-queue");
 
@@ -34,6 +36,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IMovieService, MovieService>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>(ServiceLifetime.Singleton);
+
+//For use measure our data or endpoints
+builder.Services.AddMetrics();
+builder.Services.AddSingleton<MovieMetrics>();
 
 var app = builder.Build();
 
@@ -69,11 +75,19 @@ app.MapGet("movies/{idOrSlug}", async (
         Results.NotFound();
 }).WithName("GetMovie");
 
-app.MapGet("movies", async (IMovieService movieService) =>
+app.MapGet("movies", async (IMovieService movieService, MovieMetrics movieMetrics) =>
 {
-    var movies = await movieService.GetAllAsync();
-    var moviesResponse = movies.MapToResponse();
-    return Results.Ok(moviesResponse);
+    try
+    {
+        var movies = await movieService.GetAllAsync();
+        var moviesResponse = movies.MapToResponse();
+        return Results.Ok(moviesResponse);
+    }
+    finally
+    {
+        movieMetrics.IncreaseMovieRequestCount();
+    }
+    
 });
 
 app.MapPut("movies/{id:guid}", async (
