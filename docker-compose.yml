@@ -13,6 +13,15 @@ services:
       - rabbitmq
     restart: unless-stopped
 
+  redis:
+    image: redis:latest
+    volumes:
+      - ./redis.conf:/redis.conf:ro
+    container_name: redis_api
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "/redis.conf"]
+
 networks:
   rabbitmq:
     driver: bridge
